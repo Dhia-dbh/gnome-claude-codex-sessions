@@ -90,3 +90,15 @@ Then remove the `claude-status-hook` entries from each account's `settings.json`
   See [accounts.md](accounts.md).
 - **The light stays red after a usage limit.** It clears on the session's next prompt.
 - **Logs:** `journalctl --user -f /usr/bin/gnome-shell` shows extension errors.
+
+## Releasing (maintainers)
+
+Set `version-name` in `metadata.json` (and raise the integer `version`), commit to `main`, then tag and
+push:
+
+```sh
+git tag v1.1.0 && git push origin main v1.1.0
+```
+
+The Release workflow (`.github/workflows/release.yml`) checks that the tag is on `main` and matches
+`version-name`, builds the extension zip and publishes the GitHub release.

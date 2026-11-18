@@ -7,5 +7,6 @@
   ],
   "version": 5,
   "settings-schema": "org.gnome.shell.extensions.claude-sessions",
-  "url": "https://github.com/Dhia-dbh/gnome-claude-sessions"
+  "url": "https://github.com/Dhia-dbh/gnome-claude-sessions",
+  "version-name": "1.0.0"
 }
