@@ -29,6 +29,19 @@ If GNOME has not seen the extension yet, `gnome-extensions enable` fails. Restar
 Sessions that were already running read their `settings.json` at start, so restart them to pick up
 the hooks.
 
+## From a release zip
+
+Download `claude-sessions@dhia.local.shell-extension.zip` from the
+[releases page](https://github.com/Dhia-dbh/gnome-claude-sessions/releases), then:
+
+```sh
+gnome-extensions install claude-sessions@dhia.local.shell-extension.zip
+bash ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local/install.sh
+```
+
+The second command links the hook and wires it into your accounts. Then restart GNOME Shell and enable
+the extension as above.
+
 ## Manually
 
 ```sh

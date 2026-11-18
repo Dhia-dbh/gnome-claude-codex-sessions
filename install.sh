@@ -4,7 +4,7 @@
 # (~/.claude and ~/.claude-*). Safe to run again: existing hooks for claude-status-hook are replaced.
 # Usage: ./install.sh [config dir...]   (default: every ~/.claude and ~/.claude-* directory)
 set -euo pipefail
-repo=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$(dirname "$0")" && pwd -P)
 uuid=claude-sessions@dhia.local
 ext="$HOME/.local/share/gnome-shell/extensions/$uuid"
 hook="$HOME/.local/bin/claude-status-hook"
@@ -12,7 +12,8 @@ hook="$HOME/.local/bin/claude-status-hook"
 command -v jq >/dev/null || { echo "jq is required (sudo apt install jq)" >&2; exit 1; }
 
 mkdir -p "$(dirname "$ext")" "$(dirname "$hook")"
-ln -sfn "$repo" "$ext"
+# installed from the release zip, the checkout already is the extension dir
+[ "$repo" = "$(cd "$ext" 2>/dev/null && pwd -P)" ] || ln -sfn "$repo" "$ext"
 ln -sf "$repo/bin/claude-status-hook" "$hook"
 chmod +x "$repo/bin/claude-status-hook"
 glib-compile-schemas "$repo/schemas"
