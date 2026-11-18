@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.claude-sessions" path="/org/gnome/shell/extensions/claude-sessions/">
+    <key name="show-idle" type="b">
+      <default>false</default>
+      <summary>Show idle sessions</summary>
+      <description>Idle sessions are left out of the top bar and the menu when off.</description>
+    </key>
+    <key name="show-done" type="b">
+      <default>true</default>
+      <summary>Show finished sessions</summary>
+    </key>
+    <key name="show-account-labels" type="b">
+      <default>true</default>
+      <summary>Show account names next to the lights in the top bar</summary>
+    </key>
+    <key name="show-mark" type="b">
+      <default>true</default>
+      <summary>Show the Claude mark in the top bar</summary>
+    </key>
+    <key name="hide-when-empty" type="b">
+      <default>false</default>
+      <summary>Hide the indicator when no sessions are shown</summary>
+    </key>
+    <key name="pulse-waiting" type="b">
+      <default>true</default>
+      <summary>Pulse the light of an account with a session waiting for you</summary>
+    </key>
+    <key name="show-messages" type="b">
+      <default>true</default>
+      <summary>Show the waiting message under a session in the menu</summary>
+    </key>
+    <key name="refresh-interval" type="i">
+      <range min="1" max="300"/>
+      <default>10</default>
+      <summary>Seconds between sweeps for dead sessions, Monitor scripts and background shells</summary>
+      <description>Hook updates show at once (the status directory is watched); this only paces what no hook reports.</description>
+    </key>
+    <key name="account-order" type="as">
+      <default>[]</default>
+      <summary>Account ids in the order they are shown; accounts not listed come after, alphabetically</summary>
+    </key>
+    <key name="account-names" type="a{ss}">
+      <default>{}</default>
+      <summary>Display names for account ids (the hook's id, from the CLAUDE_CONFIG_DIR name)</summary>
+    </key>
+    <key name="panel-box" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+      <summary>Top bar area the indicator sits in</summary>
+    </key>
+  </schema>
+</schemalist>

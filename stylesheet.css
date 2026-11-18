@@ -1,0 +1,28 @@
+/* Claude Sessions: one light per state. waiting pulses (extension.js), muted is a hollow ring. */
+.claude-panel { spacing: 5px; }
+.claude-mark { color: #d97757; font-weight: bold; }
+.claude-mark.claude-none { color: rgba(255, 255, 255, 0.45); }
+.claude-account { font-size: 0.85em; margin-right: 3px; }
+
+.claude-light {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  margin-right: 2px;
+}
+.claude-limited { background-color: #c01c28; border: 1.5px solid #ff7b63; }
+.claude-waiting { background-color: #e01b24; box-shadow: 0 0 5px rgba(224, 27, 36, 0.8); }
+.claude-working { background-color: #e5a50a; }
+.claude-monitor { background-color: #9141ac; }
+.claude-shell { background-color: #3584e4; }
+.claude-done { background-color: #2ec27e; }
+.claude-idle { background-color: #9a9996; }
+.claude-muted { border: 1.5px solid #9a9996; width: 6px; height: 6px; }
+
+.claude-menu { min-width: 360px; }
+.claude-header { padding-top: 8px; padding-bottom: 2px; }
+.claude-header-label { font-weight: bold; }
+.claude-session { padding-left: 32px; spacing: 10px; }
+.claude-eye { padding: 4px; border-radius: 99px; }
+.claude-eye:hover, .claude-eye:focus { background-color: rgba(255, 255, 255, 0.12); }
+.claude-hidden-note { font-size: 0.9em; color: rgba(255, 255, 255, 0.55); }
