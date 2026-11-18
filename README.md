@@ -1,9 +1,23 @@
+<div align="center">
+
+<img src="docs/header.svg" alt="Claude Sessions: every Claude Code session, one glance away" width="100%">
+
+[![Release](https://img.shields.io/github/v/release/Dhia-dbh/gnome-claude-sessions?sort=semver&color=d97757)](https://github.com/Dhia-dbh/gnome-claude-sessions/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ec27e)](LICENSE)
+[![GNOME Shell 42](https://img.shields.io/badge/GNOME%20Shell-42-4a86cf?logo=gnome&logoColor=white)](https://extensions.gnome.org/)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks-d97757)](https://docs.claude.com/en/docs/claude-code/hooks)
+[![Release workflow](https://img.shields.io/github/actions/workflow/status/Dhia-dbh/gnome-claude-sessions/release.yml?label=build)](https://github.com/Dhia-dbh/gnome-claude-sessions/actions/workflows/release.yml)
+
+</div>
+
 # Claude Sessions
 
 A GNOME Shell extension that shows what every [Claude Code](https://claude.com/claude-code) session on
 your computer is doing, right in the top bar — across several Claude accounts at once.
 
-![Top bar: one light per account](docs/screenshots/panel.png)
+<p align="center">
+  <img src="docs/screenshots/menu.png" alt="The menu: sessions grouped by account, with state, age and a mute toggle" width="500">
+</p>
 
 - **One light per account**, coloured by its most urgent session: you see at a glance when a session
   needs you, hit its usage limit, is still working, or is done.
@@ -26,11 +40,24 @@ your computer is doing, right in the top bar — across several Claude accounts 
 
 ## Requirements
 
-- GNOME Shell 42 (tested on Pop!_OS 22.04, X11)
-- Claude Code with hook support (`StopFailure` for the usage-limit light)
-- `jq`
+| | |
+|---|---|
+| **Version** | 1.0.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-sessions/releases)) |
+| **GNOME Shell** | 42 (tested on Pop!_OS 22.04, X11) |
+| **Claude Code** | with hooks (`StopFailure` for the usage-limit light) |
+| **Tools** | `jq`, `glib-compile-schemas` |
+| **License** | MIT |
 
 ## Install
+
+Grab the zip from the [latest release](https://github.com/Dhia-dbh/gnome-claude-sessions/releases/latest):
+
+```sh
+gnome-extensions install claude-sessions@dhia.local.shell-extension.zip
+bash ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local/install.sh
+```
+
+or clone the repository:
 
 ```sh
 git clone https://github.com/Dhia-dbh/gnome-claude-sessions.git ~/src/gnome-claude-sessions
@@ -76,7 +103,14 @@ Every option is described in [docs/settings.md](docs/settings.md).
 - [Settings](docs/settings.md)
 - [How it works](docs/how-it-works.md)
 
+## Contributing
+
+Issues and pull requests are welcome. To release a new version, see
+[Releasing](docs/installation.md#releasing-maintainers).
+
 ## License
 
-[MIT](LICENSE) © 2026 Dhia Ben Hamouda. You may use, modify and sell this software, as long as the
-copyright notice and license text are kept in copies of it.
+[MIT](LICENSE) © 2026 [Dhia Ben Hamouda](https://github.com/Dhia-dbh). You may use, modify and sell this
+software, as long as the copyright notice and license text are kept in copies of it.
+
+<sub>Not affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</sub>
