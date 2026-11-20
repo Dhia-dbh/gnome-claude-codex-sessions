@@ -435,7 +435,8 @@ class Indicator {
             return;
         this.polled = GLib.get_monotonic_time() / 1e6;
         try {
-            this.polling = Gio.Subprocess.new([GLib.build_filenamev([Me.path, 'bin', 'codex-limits']), ...paths],
+            // through bash: a release zip or a checkout on a drive without file modes may not keep the x bit
+            this.polling = Gio.Subprocess.new(['bash', GLib.build_filenamev([Me.path, 'bin', 'codex-limits']), ...paths],
                 Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
             this.polling.wait_async(null, () => {
                 this.polling = null;
