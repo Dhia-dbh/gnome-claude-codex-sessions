@@ -3,26 +3,39 @@
 # (rate_limits.five_hour / seven_day, sent only to the status line) in
 # ~/.cache/claude-status/limits/claude-<account>.json, then prints nothing, or the status line of the command
 # given as its argument (install.sh passes the account's previous statusLine command there).
-# Claude Code sends rate_limits only to Pro / Max subscribers, after the session's first response.
+# Claude Code sends rate_limits only to Pro / Max subscribers, after the session's first response. Only a
+# working session's limits are recorded (and once more when it stops): an idle one uses nothing.
 set -u
 input=$(cat)
-dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status/limits"
+status="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status"
+dir="$status/limits"
 config="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 account=$(basename "$config"); account=${account#.claude}; account=${account#-}
 account=${account:-default}
 file="$dir/claude-$account.json"
 
-windows=$(printf '%s' "$input" | jq -c '[(.rate_limits.five_hour // empty | {minutes: 300, used: .used_percentage, resets_at}),
-  (.rate_limits.seven_day // empty | {minutes: 10080, used: .used_percentage, resets_at})]' 2>/dev/null)
-if [ -n "$windows" ] && [ "$windows" != "[]" ]; then
+# Limits only move while the session works: record them then, and once more after it stops, for what its
+# last turn used (the limits file then names another state change, `seen`, than the session's). A session with no
+# status file (the hook isn't wired) records them every time, as there is no state to go by.
+session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+read -r state changed < <(jq -r '"\(.state // "-") \(.updated // 0)"' "$status/$session.json" 2>/dev/null)
+read -r updated seen < <(jq -r '"\(.updated // 0) \(.seen // "")"' "$file" 2>/dev/null)
+updated=${updated:-0}
+if [ -z "${state:-}" ] || [ "$state" = working ]; then mode=working
+elif [ "${seen:-}" != "$session:$state:$changed" ]; then mode=stopped
+else mode=
+fi
+
+if [ -n "$mode" ]; then
+  windows=$(printf '%s' "$input" | jq -c '[(.rate_limits.five_hour // empty | {minutes: 300, used: .used_percentage, resets_at}),
+    (.rate_limits.seven_day // empty | {minutes: 10080, used: .used_percentage, resets_at})]' 2>/dev/null)
   now=$(date +%s)
-  # the status line runs often: rewrite only when a value changed, or to say the values are still current
-  old=$(jq -c '.windows' "$file" 2>/dev/null)
-  updated=$(jq -r '.updated // 0' "$file" 2>/dev/null || echo 0)
-  if [ "$windows" != "$old" ] || [ $((now - ${updated:-0})) -ge 300 ]; then
+  # while working the status line runs often: rewrite only when a value changed, or to say they are still current
+  if [ -n "$windows" ] && [ "$windows" != "[]" ] && { [ "$mode" = stopped ] ||
+      [ "$windows" != "$(jq -c '.windows' "$file" 2>/dev/null)" ] || [ $((now - updated)) -ge 300 ]; }; then
     mkdir -p "$dir"
-    jq -n --arg account "$account" --argjson windows "$windows" --argjson updated "$now" \
-      '{agent: "claude", account: $account, updated: $updated, windows: $windows}' > "$file.$$" && mv "$file.$$" "$file"
+    jq -n --arg account "$account" --argjson windows "$windows" --argjson updated "$now" --arg seen "$session:${state:-}:${changed:-}" \
+      '{agent: "claude", account: $account, updated: $updated, windows: $windows, seen: $seen}' > "$file.$$" && mv "$file.$$" "$file"
   fi
 fi
 [ $# -gt 0 ] && [ -n "$1" ] && printf '%s' "$input" | bash -c "$1"
