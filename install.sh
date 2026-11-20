@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs Claude Sessions from this checkout: links the extension and the hook, compiles the settings
+# Installs Claude & Codex Sessions from this checkout: links the extension and the hook, compiles the settings
 # schema, and wires the hook into every Claude Code account found in ~ (the settings.json of ~/.claude and
 # ~/.claude-*) and every Codex home (the hooks.json of ~/.codex and ~/.codex-*).
 # Each Claude account also gets bin/claude-status-line as its status line, which records the usage limits;

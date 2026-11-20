@@ -1,4 +1,4 @@
-/* Claude Sessions: settings window (GNOME 42, GTK 4 + libadwaita). Every row is bound straight to its
+/* Claude & Codex Sessions: settings window (GNOME 42, GTK 4 + libadwaita). Every row is bound straight to its
  * GSettings key, so changes apply to the top bar as soon as they are made. Accounts are the config dirs
  * found in ~ (~/.claude -> default, ~/.claude-<id> -> <id>, and the same for ~/.codex, as
  * bin/claude-status-hook names them) plus any account a status file or the saved order mentions. They are
