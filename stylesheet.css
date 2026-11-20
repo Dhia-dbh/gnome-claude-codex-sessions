@@ -1,6 +1,9 @@
-/* Claude Sessions: one light per state. waiting pulses (extension.js), muted is a hollow ring. */
-.claude-panel { spacing: 5px; }
+/* Claude Sessions: one light per state, the same for every agent. waiting pulses (extension.js), muted is a
+ * hollow ring. Each agent has its own mark. */
+.claude-panel { spacing: 10px; }
+.claude-agent { spacing: 5px; }
 .claude-mark { color: #d97757; font-weight: bold; }
+.claude-mark-codex { color: #f6f5f4; font-family: monospace; font-size: 0.9em; }
 .claude-mark.claude-none { color: rgba(255, 255, 255, 0.45); }
 .claude-account { font-size: 0.85em; margin-right: 3px; }
 
@@ -20,9 +23,11 @@
 .claude-muted { border: 1.5px solid #9a9996; width: 6px; height: 6px; }
 
 .claude-menu { min-width: 360px; }
-.claude-header { padding-top: 8px; padding-bottom: 2px; }
+.claude-agent-header { padding-top: 8px; padding-bottom: 2px; spacing: 8px; }
+.claude-agent-label { font-weight: bold; }
+.claude-header { padding-left: 32px; padding-top: 6px; padding-bottom: 2px; }
 .claude-header-label { font-weight: bold; }
-.claude-session { padding-left: 32px; spacing: 10px; }
+.claude-session { padding-left: 52px; spacing: 10px; }
 .claude-eye { padding: 4px; border-radius: 99px; }
 .claude-eye:hover, .claude-eye:focus { background-color: rgba(255, 255, 255, 0.12); }
 .claude-hidden-note { font-size: 0.9em; color: rgba(255, 255, 255, 0.55); }

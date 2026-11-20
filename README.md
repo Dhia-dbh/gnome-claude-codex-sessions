@@ -12,8 +12,9 @@
 
 # Claude Sessions
 
-A GNOME Shell extension that shows what every [Claude Code](https://claude.com/claude-code) session on
-your computer is doing, right in the top bar — across several Claude accounts at once.
+A GNOME Shell extension that shows what every [Claude Code](https://claude.com/claude-code) and
+[Codex](https://developers.openai.com/codex) session on your computer is doing, right in the top bar —
+across several accounts of each at once.
 
 <p align="center">
   <img src="docs/screenshots/menu.png" alt="The menu: sessions grouped by account, with state, age and a mute toggle" width="500">
@@ -21,6 +22,9 @@ your computer is doing, right in the top bar — across several Claude accounts 
 
 - **One light per account**, coloured by its most urgent session: you see at a glance when a session
   needs you, hit its usage limit, is still working, or is done.
+- **Claude Code and Codex side by side.** Each agent with open sessions gets its mark in the top bar
+  (✳ Claude Code, `>_` Codex) followed by its accounts' lights. The menu is split by agent, then by
+  account (work, personal, …). The colours mean the same thing for both.
 - **Click a session** in the menu to raise its terminal. Background sessions (`claude --bg`) open in a
   terminal attached to them.
 - **Mute** a session (eye icon) to keep it out of the top-bar light.
@@ -45,6 +49,7 @@ your computer is doing, right in the top bar — across several Claude accounts 
 | **Version** | 1.0.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-sessions/releases)) |
 | **GNOME Shell** | 42 (tested on Pop!_OS 22.04, X11) |
 | **Claude Code** | with hooks (`StopFailure` for the usage-limit light) |
+| **Codex CLI** | optional, with hooks (on by default; trust them once with `/hooks`) |
 | **Tools** | `jq`, `glib-compile-schemas` |
 | **License** | MIT |
 
@@ -66,7 +71,9 @@ cd ~/src/gnome-claude-sessions
 ```
 
 `install.sh` links the extension and the hook into place, compiles the settings schema, and adds the
-hook to the `settings.json` of every Claude account it finds (`~/.claude` and `~/.claude-*`). Then
+hook to the `settings.json` of every Claude account (`~/.claude` and `~/.claude-*`) and to the
+`hooks.json` of every Codex home (`~/.codex` and `~/.codex-*`) it finds. In Codex, run `/hooks` once and
+trust the new hooks: Codex skips hooks you haven't reviewed. Then
 restart GNOME Shell (X11: <kbd>Alt</kbd>+<kbd>F2</kbd>, `r`; Wayland: log out and in) and run:
 
 ```sh
@@ -86,6 +93,7 @@ alias claude-personal='CLAUDE_CONFIG_DIR=~/.claude-personal claude'
 ```
 
 Name the directories `~/.claude-<name>` and make sure the hook is in each one's `settings.json`.
+Codex works the same way with `CODEX_HOME`: `~/.codex` → **default**, `~/.codex-work` → **work**.
 [docs/accounts.md](docs/accounts.md) explains the detection in full.
 
 ## Settings

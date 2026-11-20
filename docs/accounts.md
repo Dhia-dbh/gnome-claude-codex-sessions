@@ -41,12 +41,30 @@ config directory.
 - **Start `claude` with the variable already set** (an alias, or `CLAUDE_CONFIG_DIR=… claude`). The
   hook only sees the environment the session started with.
 
+## Codex
+
+Codex keeps each account in a **Codex home**: `~/.codex` by default, or the directory named by
+`CODEX_HOME`. The same rule applies, with `.codex` in place of `.claude`:
+
+| `CODEX_HOME` | Account id |
+|--------------|------------|
+| not set (`~/.codex`) | `default` |
+| `~/.codex-work` | `work` |
+
+```sh
+alias codex-work='CODEX_HOME=~/.codex-work codex'
+```
+
+Codex and Claude accounts are kept apart: a Codex `work` account and a Claude `work` account get
+separate lights and separate menu sections. Put the hook in each Codex home's `hooks.json`
+(`install.sh` does this) and trust it once with `/hooks` in Codex.
+
 ## Display names and order
 
-The id is fixed, but what you see isn't: **Settings → Accounts** lets you give each account a display
-name and move accounts up or down. The order is used in both the top bar and the menu. Accounts that
+The id is fixed, but what you see isn't: **Settings → Claude Code accounts** and **Codex accounts** let
+you give each account a display name and move accounts up or down within their agent. The order is used in both the top bar and the menu. Accounts that
 aren't in the saved order yet come last, alphabetically.
 
-The list includes every `~/.claude` and `~/.claude-*` directory, plus any account a running session
-reports. The names are stored in the `account-names` setting and the order in `account-order`, both
-keyed by account id.
+The lists include every `~/.claude`, `~/.claude-*`, `~/.codex` and `~/.codex-*` directory, plus any account a
+running session reports. The names are stored in the `account-names` setting and the order in
+`account-order`, both keyed by account id: `work` for a Claude account, `codex:work` for a Codex one.
