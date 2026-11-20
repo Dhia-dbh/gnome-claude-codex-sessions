@@ -16,7 +16,8 @@
     </key>
     <key name="show-mark" type="b">
       <default>true</default>
-      <summary>Show the Claude mark in the top bar</summary>
+      <summary>Show the agent marks (Claude ✳, Codex &gt;_) in the top bar</summary>
+      <description>The marks are always shown when there are no sessions, and when more than one agent has sessions.</description>
     </key>
     <key name="hide-when-empty" type="b">
       <default>false</default>
@@ -38,11 +39,11 @@
     </key>
     <key name="account-order" type="as">
       <default>[]</default>
-      <summary>Account ids in the order they are shown; accounts not listed come after, alphabetically</summary>
+      <summary>Account ids in the order they are shown (codex:&lt;id&gt; for Codex); accounts not listed come after, alphabetically</summary>
     </key>
     <key name="account-names" type="a{ss}">
       <default>{}</default>
-      <summary>Display names for account ids (the hook's id, from the CLAUDE_CONFIG_DIR name)</summary>
+      <summary>Display names for account ids (the hook's id, from the CLAUDE_CONFIG_DIR name; codex:&lt;id&gt; for Codex, from CODEX_HOME)</summary>
     </key>
     <key name="panel-box" type="s">
       <choices>

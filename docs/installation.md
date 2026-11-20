@@ -5,8 +5,8 @@
 ```sh
 git clone https://github.com/Dhia-dbh/gnome-claude-sessions.git ~/src/gnome-claude-sessions
 cd ~/src/gnome-claude-sessions
-./install.sh                      # every ~/.claude and ~/.claude-* account
-./install.sh ~/.claude-work       # or only the config dirs you name
+./install.sh                      # every ~/.claude, ~/.claude-*, ~/.codex and ~/.codex-* account
+./install.sh ~/.claude-work       # or only the config dirs you name (~/.codex* dirs are Codex homes)
 ```
 
 The script:
@@ -14,8 +14,12 @@ The script:
 1. links the checkout to `~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local`;
 2. links `bin/claude-status-hook` to `~/.local/bin/claude-status-hook`;
 3. compiles `schemas/`;
-4. adds the hook to each account's `settings.json`. Any earlier entries for the hook are replaced, so
-   running it again is safe. Your other hooks are not changed.
+4. adds the hook to each Claude account's `settings.json` and each Codex home's `hooks.json`. Any
+   earlier entries for the hook are replaced, so running it again is safe. Your other hooks are not
+   changed.
+
+Codex only runs hooks you have trusted. After installing, start `codex`, type `/hooks` and trust the
+`claude-status-hook` entries. Do this once per Codex home, and again after the hook entries change.
 
 Restart GNOME Shell (X11: <kbd>Alt</kbd>+<kbd>F2</kbd>, `r`, <kbd>Enter</kbd>; Wayland: log out and
 back in), then enable the extension:
@@ -72,6 +76,23 @@ Then add the hook to the `settings.json` of each account (`~/.claude/settings.js
 The `Notification` matcher skips the "still waiting" reminders. The `StopFailure` matcher limits the red
 usage-limit light to rate limits, so it doesn't fire on other API errors.
 
+For Codex, add the hook to `~/.codex/hooks.json` (or `$CODEX_HOME/hooks.json`) with `--agent codex`, then
+trust it with `/hooks`:
+
+```json
+{
+  "hooks": {
+    "SessionStart":      [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex" }] }],
+    "UserPromptSubmit":  [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex" }] }],
+    "PostToolUse":       [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex" }] }],
+    "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex" }] }],
+    "Stop":              [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex" }] }],
+    "Interrupt":         [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex", "timeout": 3 }] }],
+    "SessionEnd":        [{ "hooks": [{ "type": "command", "command": "~/.local/bin/claude-status-hook --agent codex", "timeout": 3 }] }]
+  }
+}
+```
+
 ## Uninstall
 
 ```sh
@@ -80,12 +101,14 @@ rm ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local ~/.local/bin
 rm -rf ~/.cache/claude-status
 ```
 
-Then remove the `claude-status-hook` entries from each account's `settings.json`.
+Then remove the `claude-status-hook` entries from each account's `settings.json` and each Codex home's
+`hooks.json`.
 
 ## Troubleshooting
 
 - **No sessions show up.** Check that `~/.cache/claude-status/` gets a `<session id>.json` file when
-  you send a prompt. If it doesn't, the hook isn't wired into that account, or `jq` is missing.
+  you send a prompt. If it doesn't, the hook isn't wired into that account, or `jq` is missing. For
+  Codex, also check `/hooks`: untrusted hooks are skipped.
 - **An account is missing or called "default".** The session was started without `CLAUDE_CONFIG_DIR`.
   See [accounts.md](accounts.md).
 - **The light stays red after a usage limit.** It clears on the session's next prompt.

@@ -1,7 +1,7 @@
 {
   "uuid": "claude-sessions@dhia.local",
   "name": "Claude Sessions",
-  "description": "Top-bar lights for every Claude Code session on this computer, grouped by account, with per-session mute and a settings window (from ~/.cache/claude-status, written by Claude Code hooks). Click a session to raise its terminal.",
+  "description": "Top-bar lights for every Claude Code and Codex session on this computer, grouped by agent and account, with per-session mute and a settings window (from ~/.cache/claude-status, written by Claude Code and Codex hooks). Click a session to raise its terminal.",
   "shell-version": [
     "42"
   ],
