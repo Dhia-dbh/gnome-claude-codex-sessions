@@ -59,7 +59,9 @@ Neither CLI has a hook for its usage limits, so they come from elsewhere and are
 - **Claude Code** sends `rate_limits` (5-hour and 7-day) only to its
   [status line](https://code.claude.com/docs/en/statusline). `install.sh` sets `bin/claude-status-line` as
   each account's status line. It records the limits and prints nothing, or runs the status line the
-  account already had and prints its output. Claude sends limits only to Pro / Max subscribers and only
+  account already had and prints its output. Limits only move while a session works, so it records them
+  only then, and once more when the session stops, to catch what its last turn used. An idle session's
+  status line does nothing. Claude sends limits only to Pro / Max subscribers and only
   after a session's first response, so an account's limits are as recent as its last active session.
   Older than 15 minutes, the menu says how old they are.
 - **Codex** answers `account/rateLimits/read` from `codex app-server` without a session or a terminal.
