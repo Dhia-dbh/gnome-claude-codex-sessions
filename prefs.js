@@ -140,7 +140,7 @@ function fillPreferencesWindow(window) {
     bar.add(switchRow(settings, 'show-mark', 'Show the agent marks', '✳ for Claude Code, >_ for Codex. Always shown when both have sessions'));
     bar.add(switchRow(settings, 'show-account-labels', 'Show account names', 'Next to each account’s light'));
     bar.add(switchRow(settings, 'pulse-waiting', 'Pulse when a session needs you'));
-    bar.add(switchRow(settings, 'show-limits', 'Show usage limits', 'A disk per limit (5h, weekly) after each account: full while unused, a half moon at half'));
+    bar.add(switchRow(settings, 'show-limits', 'Show usage limits in the top bar', 'The 5h and weekly bars after each account’s light, as in the menu'));
     bar.add(switchRow(settings, 'hide-when-empty', 'Hide when there are no sessions to show'));
 
     const boxes = ['left', 'center', 'right'];
