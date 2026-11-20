@@ -5,8 +5,8 @@
   "shell-version": [
     "42"
   ],
-  "version": 5,
+  "version": 6,
   "settings-schema": "org.gnome.shell.extensions.claude-sessions",
   "url": "https://github.com/Dhia-dbh/gnome-claude-codex-sessions",
-  "version-name": "1.0.0"
+  "version-name": "1.1.0"
 }

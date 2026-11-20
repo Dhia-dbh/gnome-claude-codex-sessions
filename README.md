@@ -49,7 +49,7 @@ across several accounts of each at once.
 
 | | |
 |---|---|
-| **Version** | 1.0.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases)) |
+| **Version** | 1.1.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases)) |
 | **GNOME Shell** | 42 (tested on Pop!_OS 22.04, X11) |
 | **Claude Code** | with hooks (`StopFailure` for the usage-limit light) |
 | **Codex CLI** | optional, with hooks (on by default; trust them once with `/hooks`) |
