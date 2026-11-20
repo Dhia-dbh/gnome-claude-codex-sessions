@@ -25,6 +25,9 @@ across several accounts of each at once.
 - **Claude Code and Codex side by side.** Each agent with open sessions gets its mark in the top bar
   (✳ Claude Code, `>_` Codex) followed by its accounts' lights. The menu is split by agent, then by
   account (work, personal, …). The colours mean the same thing for both.
+- **Usage limits per account.** Two small moon disks after each account's light show what is left of
+  its 5-hour and weekly limits: a full disk is unused, a half moon is half used, a ring is used up. The
+  menu shows a bar per limit that empties as it is used, with the time until it resets.
 - **Click a session** in the menu to raise its terminal. Background sessions (`claude --bg`) open in a
   terminal attached to them.
 - **Mute** a session (eye icon) to keep it out of the top-bar light.

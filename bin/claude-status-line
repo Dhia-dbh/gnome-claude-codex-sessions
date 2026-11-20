@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Claude Code status line for the "Claude & Codex Sessions" extension: records the account's usage limits
+# (rate_limits.five_hour / seven_day, sent only to the status line) in
+# ~/.cache/claude-status/limits/claude-<account>.json, then prints nothing, or the status line of the command
+# given as its argument (install.sh passes the account's previous statusLine command there).
+# Claude Code sends rate_limits only to Pro / Max subscribers, after the session's first response.
+set -u
+input=$(cat)
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status/limits"
+config="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+account=$(basename "$config"); account=${account#.claude}; account=${account#-}
+account=${account:-default}
+file="$dir/claude-$account.json"
+
+windows=$(printf '%s' "$input" | jq -c '[(.rate_limits.five_hour // empty | {minutes: 300, used: .used_percentage, resets_at}),
+  (.rate_limits.seven_day // empty | {minutes: 10080, used: .used_percentage, resets_at})]' 2>/dev/null)
+if [ -n "$windows" ] && [ "$windows" != "[]" ]; then
+  now=$(date +%s)
+  # the status line runs often: rewrite only when a value changed, or to say the values are still current
+  old=$(jq -c '.windows' "$file" 2>/dev/null)
+  updated=$(jq -r '.updated // 0' "$file" 2>/dev/null || echo 0)
+  if [ "$windows" != "$old" ] || [ $((now - ${updated:-0})) -ge 300 ]; then
+    mkdir -p "$dir"
+    jq -n --arg account "$account" --argjson windows "$windows" --argjson updated "$now" \
+      '{agent: "claude", account: $account, updated: $updated, windows: $windows}' > "$file.$$" && mv "$file.$$" "$file"
+  fi
+fi
+[ $# -gt 0 ] && [ -n "$1" ] && printf '%s' "$input" | bash -c "$1"
+exit 0

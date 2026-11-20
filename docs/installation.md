@@ -17,6 +17,8 @@ The script:
 4. adds the hook to each Claude account's `settings.json` and each Codex home's `hooks.json`. Any
    earlier entries for the hook are replaced, so running it again is safe. Your other hooks are not
    changed.
+5. sets `claude-status-line` as each Claude account's status line, to record its usage limits. A status
+   line you already had keeps working: it is passed to `claude-status-line`, which runs it.
 
 Codex only runs hooks you have trusted. After installing, start `codex`, type `/hooks` and trust the
 `claude-status-hook` entries. Do this once per Codex home, and again after the hook entries change.
@@ -97,12 +99,13 @@ trust it with `/hooks`:
 
 ```sh
 gnome-extensions disable claude-sessions@dhia.local
-rm ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local ~/.local/bin/claude-status-hook
+rm ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local ~/.local/bin/claude-status-hook ~/.local/bin/claude-status-line
 rm -rf ~/.cache/claude-status
 ```
 
 Then remove the `claude-status-hook` entries from each account's `settings.json` and each Codex home's
-`hooks.json`.
+`hooks.json`, and the `statusLine` that runs `claude-status-line` (if it wraps your own command, put that
+command back).
 
 ## Troubleshooting
 

@@ -37,6 +37,17 @@
       <summary>Seconds between sweeps for dead sessions, Monitor scripts and background shells</summary>
       <description>Hook updates show at once (the status directory is watched); this only paces what no hook reports.</description>
     </key>
+    <key name="show-limits" type="b">
+      <default>true</default>
+      <summary>Show each account's usage limits as disks next to its light</summary>
+      <description>Up to two disks (the shortest and the longest window, such as 5h and weekly): full while nothing is used, a half moon at half.</description>
+    </key>
+    <key name="limits-interval" type="i">
+      <range min="60" max="3600"/>
+      <default>300</default>
+      <summary>Seconds between checks of the Codex accounts' usage limits</summary>
+      <description>Claude Code's limits come from its status line while its sessions run, so they need no check.</description>
+    </key>
     <key name="account-order" type="as">
       <default>[]</default>
       <summary>Account ids in the order they are shown (codex:&lt;id&gt; for Codex); accounts not listed come after, alphabetically</summary>

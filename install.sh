@@ -2,6 +2,8 @@
 # Installs Claude Sessions from this checkout: links the extension and the hook, compiles the settings
 # schema, and wires the hook into every Claude Code account found in ~ (the settings.json of ~/.claude and
 # ~/.claude-*) and every Codex home (the hooks.json of ~/.codex and ~/.codex-*).
+# Each Claude account also gets bin/claude-status-line as its status line, which records the usage limits;
+# a status line the account already had is kept: claude-status-line runs it and prints its output.
 # Safe to run again: existing hooks for claude-status-hook are replaced.
 # Usage: ./install.sh [config dir...]   (default: every ~/.claude, ~/.claude-*, ~/.codex and ~/.codex-* directory;
 #        a dir named .codex or .codex-* is a Codex home, anything else a Claude config dir)
@@ -10,6 +12,7 @@ repo=$(cd "$(dirname "$0")" && pwd -P)
 uuid=claude-sessions@dhia.local
 ext="$HOME/.local/share/gnome-shell/extensions/$uuid"
 hook="$HOME/.local/bin/claude-status-hook"
+line="$HOME/.local/bin/claude-status-line"
 
 command -v jq >/dev/null || { echo "jq is required (sudo apt install jq)" >&2; exit 1; }
 
@@ -17,9 +20,10 @@ mkdir -p "$(dirname "$ext")" "$(dirname "$hook")"
 # installed from the release zip, the checkout already is the extension dir
 [ "$repo" = "$(cd "$ext" 2>/dev/null && pwd -P)" ] || ln -sfn "$repo" "$ext"
 ln -sf "$repo/bin/claude-status-hook" "$hook"
-chmod +x "$repo/bin/claude-status-hook"
+ln -sf "$repo/bin/claude-status-line" "$line"
+chmod +x "$repo/bin/claude-status-hook" "$repo/bin/claude-status-line" "$repo/bin/codex-limits"
 glib-compile-schemas "$repo/schemas"
-echo "linked $ext and $hook"
+echo "linked $ext, $hook and $line"
 
 if [ $# -gt 0 ]; then configs=("$@"); else
   configs=()
@@ -41,8 +45,9 @@ for config in "${configs[@]}"; do
         | wire("SessionStart"; null; 10) | wire("UserPromptSubmit"; null; 10) | wire("PostToolUse"; null; 10)
         | wire("PermissionRequest"; null; 10) | wire("Stop"; null; 10)
         | wire("Interrupt"; null; 3) | wire("SessionEnd"; null; 3)' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-      # Codex loads hooks from both files of a layer, and warns when both have some
-      if grep -qE '^\[\[?hooks[].]' "$config/config.toml" 2>/dev/null; then
+      # Codex loads hooks from both files of a layer, and warns when both have some ([hooks.state] is only
+      # Codex's record of which hooks are trusted)
+      if grep -qE '^\[\[hooks\.' "$config/config.toml" 2>/dev/null; then
         echo "note: $config/config.toml also declares hooks; Codex will warn that the layer has two hook sources"
       fi
       codex=1 ;;
@@ -53,7 +58,11 @@ for config in "${configs[@]}"; do
         | wire("SessionStart"; null; 10) | wire("UserPromptSubmit"; null; 10) | wire("PostToolUse"; null; 10)
         | wire("Stop"; null; 10) | wire("SessionEnd"; null; 10)
         | wire("Notification"; "permission_prompt|elicitation_dialog"; 10)
-        | wire("StopFailure"; "rate_limit"; 10)' "$file" > "$file.tmp" && mv "$file.tmp" "$file" ;;
+        | wire("StopFailure"; "rate_limit"; 10)
+        | if (.statusLine.command // "") | startswith($line) then .
+          elif .statusLine.command then .statusLine.command = "\($line) \(.statusLine.command | @sh)"
+          else .statusLine = {type: "command", command: $line} end' --arg line "$line" \
+        "$file" > "$file.tmp" && mv "$file.tmp" "$file" ;;
   esac
   echo "hooks wired in $file"
 done

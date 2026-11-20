@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Asks Codex for the usage limits of each Codex home given (account/rateLimits/read of `codex app-server`,
+# which needs no session or terminal) and writes them to ~/.cache/claude-status/limits/codex-<account>.json
+# for the "Claude & Codex Sessions" extension, which runs it every limits-interval seconds.
+# Usage: codex-limits ~/.codex [~/.codex-work ...]
+set -u
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status/limits"
+mkdir -p "$dir"
+# GNOME Shell's PATH rarely has an nvm or npm prefix in it; codex.js also needs node next to it
+codex=$(command -v codex || ls -d "$HOME"/.nvm/versions/node/*/bin/codex "$HOME"/.local/bin/codex "$HOME"/.npm-global/bin/codex 2>/dev/null | sort -V | tail -1)
+[ -n "$codex" ] || exit 1
+PATH="$(dirname "$codex"):$PATH"
+
+for home in "$@"; do
+  account=$(basename "$home"); account=${account#.codex}; account=${account#-}
+  account=${account:-default}
+  coproc APP { CODEX_HOME="$home" exec "$codex" app-server 2>/dev/null; }
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"claude-codex-sessions","version":"1"}}}' \
+    '{"jsonrpc":"2.0","method":"initialized"}' '{"jsonrpc":"2.0","id":2,"method":"account/rateLimits/read"}' >&"${APP[1]}"
+  reply=
+  while IFS= read -r -t 20 line <&"${APP[0]}"; do
+    case "$line" in *'"id":2'*) reply=$line; break ;; esac
+  done
+  exec {APP[1]}>&-
+  pkill -P "$APP_PID" 2>/dev/null; kill "$APP_PID" 2>/dev/null; wait "$APP_PID" 2>/dev/null
+  windows=$(printf '%s' "$reply" | jq -c '[.result.rateLimits | (.primary, .secondary) | select(.)
+    | {minutes: .windowDurationMins, used: .usedPercent, resets_at: .resetsAt}]' 2>/dev/null)
+  [ -n "$windows" ] && [ "$windows" != "[]" ] || continue
+  file="$dir/codex-$account.json"
+  jq -n --arg account "$account" --argjson windows "$windows" --argjson updated "$(date +%s)" \
+    '{agent: "codex", account: $account, updated: $updated, windows: $windows}' > "$file.$$" && mv "$file.$$" "$file"
+done

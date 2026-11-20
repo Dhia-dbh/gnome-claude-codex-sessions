@@ -21,6 +21,19 @@
 .claude-done { background-color: #2ec27e; }
 .claude-idle { background-color: #9a9996; }
 .claude-muted { border: 1.5px solid #9a9996; width: 6px; height: 6px; }
+.claude-none { background-color: transparent; }
+
+/* usage limits: moon disks in the top bar, bars in the menu; white, amber when 20 % or less is left, red when none */
+.claude-disks { spacing: 2px; margin-left: 1px; }
+.claude-disk { width: 10px; height: 10px; }
+.claude-limit { padding-left: 52px; padding-top: 1px; padding-bottom: 1px; spacing: 10px; }
+.claude-limit-name { min-width: 56px; font-size: 0.9em; }
+.claude-limit-text { font-size: 0.9em; color: rgba(255, 255, 255, 0.75); }
+.claude-bar { height: 6px; border-radius: 3px; background-color: rgba(255, 255, 255, 0.15); }
+.claude-bar-fill { height: 6px; border-radius: 3px; }
+.claude-fill-ok { background-color: #f6f5f4; }
+.claude-fill-low { background-color: #e5a50a; }
+.claude-fill-out { background-color: #e01b24; }
 
 .claude-menu { min-width: 360px; }
 .claude-agent-header { padding-top: 8px; padding-bottom: 2px; spacing: 8px; }
