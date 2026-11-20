@@ -51,6 +51,27 @@ process by walking up its own parent processes.
   terminal already running `claude attach <id>`, or opens a new one.
 - **Muting.** Muting a session creates an empty file, `~/.cache/claude-status/muted/<session id>`.
 
+## Usage limits
+
+Neither CLI has a hook for its usage limits, so they come from elsewhere and are written to
+`~/.cache/claude-status/limits/<agent>-<account>.json` (each window's length, % used and reset time):
+
+- **Claude Code** sends `rate_limits` (5-hour and 7-day) only to its
+  [status line](https://code.claude.com/docs/en/statusline). `install.sh` sets `bin/claude-status-line` as
+  each account's status line. It records the limits and prints nothing, or runs the status line the
+  account already had and prints its output. Claude sends limits only to Pro / Max subscribers and only
+  after a session's first response, so an account's limits are as recent as its last active session.
+  Older than 15 minutes, the menu says how old they are.
+- **Codex** answers `account/rateLimits/read` from `codex app-server` without a session or a terminal.
+  The extension runs `bin/codex-limits` for each signed-in `~/.codex*` home every few minutes (Settings →
+  Codex limits check interval) and when the menu opens. Codex's windows depend on the plan: 5h and weekly
+  on paid plans, one monthly window on the free plan.
+
+A window whose reset time has passed counts as unused until new values arrive. The top bar shows the
+shortest and longest window of each account with sessions as moon disks. The lit part is what is left;
+it is white, amber with 20 % or less left and a red ring when used up. The menu lists every account with
+known limits, with a bar per window.
+
 ## Files
 
 | Path | Purpose |
@@ -60,4 +81,6 @@ process by walking up its own parent processes.
 | `schemas/` | GSettings schema |
 | `stylesheet.css` | light colours |
 | `bin/claude-status-hook` | the Claude Code and Codex hook |
+| `bin/claude-status-line` | Claude Code status line that records usage limits |
+| `bin/codex-limits` | asks Codex for its accounts' usage limits |
 | `install.sh` | installer |

@@ -14,6 +14,10 @@
  * Settings (prefs.js, schemas/) choose which states are shown at all, how the top bar looks, and the
  * accounts' display names and order (account-names, account-order; keyed by accountKey(): the hook's account
  * id for Claude, codex:<id> for Codex).
+ * Usage limits: limits/<agent>-<account>.json (bin/claude-status-line, Claude's status line, while its sessions
+ * run; bin/codex-limits, run here every limits-interval seconds) give each account's windows (5h, weekly, …)
+ * as % used. The top bar shows up to two moon disks per account (full = nothing used), the menu a bar per
+ * window that empties as it is used.
  * GNOME Shell 42 (legacy imports).
  */
 
@@ -22,10 +26,16 @@ const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
 
 const STALE = 12 * 3600;   // sessions whose process could not be found: hidden after this long
 const DIR = GLib.build_filenamev([GLib.get_user_cache_dir(), 'claude-status']);
 const MUTED = GLib.build_filenamev([DIR, 'muted']);
+const LIMITS = GLib.build_filenamev([DIR, 'limits']);
+const STALE_LIMITS = 15 * 60;   // limits older than this say how old they are (Claude's stop updating with its sessions)
+const BAR = 140;                // width of a limit's bar in the menu
+// a limit's colour: the disk's and the bar's fill, as cairo RGB for the disks (the bars' are in stylesheet.css)
+const LEVELS = { ok: [0.965, 0.961, 0.957], low: [0.898, 0.647, 0.039], out: [0.878, 0.106, 0.141] };
 // most urgent first: the top bar shows the first state any unmuted session of the account is in
 const ORDER = ['limited', 'waiting', 'working', 'monitor', 'shell', 'done', 'idle'];
 const STATES = {
@@ -144,6 +154,49 @@ function readSessions() {
     }
     enumerator.close(null);
     return sessions.sort((a, b) => ORDER.indexOf(a.state) - ORDER.indexOf(b.state) || b.updated - a.updated);
+}
+
+// Map `<agent>/<account>` -> { updated, windows: [{ minutes, left (0..1), resets_at }] }, shortest window first.
+// A window whose reset time has passed starts again with nothing used.
+function readLimits() {
+    const limits = new Map();
+    const now = GLib.get_real_time() / 1e6;
+    for (const name of listDir(LIMITS)) {
+        if (!name.endsWith('.json'))
+            continue;
+        let l;
+        try {
+            l = JSON.parse(readText(GLib.build_filenamev([LIMITS, name])));
+        } catch (e) {
+            continue;
+        }
+        if (!AGENTS[l?.agent] || !Array.isArray(l.windows))
+            continue;
+        const windows = l.windows.filter(w => w.minutes > 0 && typeof w.used === 'number').map(w => {
+            const reset = w.resets_at && w.resets_at <= now;
+            return { minutes: w.minutes, resets_at: reset ? 0 : w.resets_at, left: reset ? 1 : Math.min(1, Math.max(0, 1 - w.used / 100)) };
+        }).sort((a, b) => a.minutes - b.minutes);
+        if (windows.length)
+            limits.set(`${l.agent}/${l.account || 'default'}`, { updated: l.updated || 0, windows });
+    }
+    return limits;
+}
+
+function windowName(minutes) {
+    const names = { 300: '5h', 1440: 'Daily', 10080: 'Weekly', 43200: 'Monthly' };
+    return names[minutes] || (minutes % 1440 ? `${Math.round(minutes / 60)}h` : `${minutes / 1440}d`);
+}
+
+function level(left) {
+    return left <= 0 ? 'out' : left <= 0.2 ? 'low' : 'ok';
+}
+
+// the Codex homes signed in: ~/.codex and ~/.codex-<id> with an auth.json
+function codexHomes() {
+    const home = GLib.get_home_dir();
+    return listDir(home).filter(n => /^\.codex(-.+)?$/.test(n))
+        .map(n => GLib.build_filenamev([home, n]))
+        .filter(d => GLib.file_test(GLib.build_filenamev([d, 'auth.json']), GLib.FileTest.EXISTS));
 }
 
 function setMuted(session, muted) {
@@ -273,7 +326,9 @@ function age(seconds) {
         return `${Math.round(seconds)} s`;
     if (seconds < 3600)
         return `${Math.round(seconds / 60)} min`;
-    return `${(seconds / 3600).toFixed(1)} h`;
+    if (seconds < 2 * 86400)
+        return `${(seconds / 3600).toFixed(1)} h`;
+    return `${Math.round(seconds / 86400)} days`;
 }
 
 function esc(text) {
@@ -282,6 +337,33 @@ function esc(text) {
 
 function light(state) {
     return new St.Widget({ style_class: `claude-light claude-${state}`, y_align: Clutter.ActorAlign.CENTER });
+}
+
+// A limit as a moon: the lit part is what is left (full disk = nothing used, half moon = half used, a bare
+// ring = used up). The lit part is the right half plus or minus half an ellipse, so its area is exactly `left`.
+function disk(left) {
+    const area = new St.DrawingArea({ style_class: 'claude-disk', y_align: Clutter.ActorAlign.CENTER });
+    area.connect('repaint', () => {
+        const cr = area.get_context();
+        const [w, h] = area.get_surface_size();
+        const R = Math.min(w, h) / 2 - 1, cx = w / 2, cy = h / 2;
+        const [r, g, b] = LEVELS[level(left)];
+        if (left > 0) {
+            cr.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2);
+            const k = 2 * left - 1;   // the terminator, from the bottom back to the top
+            for (let i = 0; i <= 24; i++)
+                cr.lineTo(cx - k * R * Math.sin(Math.PI * i / 24), cy + R * Math.cos(Math.PI * i / 24));
+            cr.closePath();
+            cr.setSourceRGBA(r, g, b, 1);
+            cr.fill();
+        }
+        cr.arc(cx, cy, R, 0, 2 * Math.PI);
+        cr.setSourceRGBA(r, g, b, left > 0 ? 0.5 : 1);
+        cr.setLineWidth(1);
+        cr.stroke();
+        cr.$dispose();
+    });
+    return area;
 }
 
 function mark(agent, extraClass) {
@@ -302,23 +384,63 @@ class Indicator {
         this.button.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         this.button.menu.addAction('Settings…', () => ExtensionUtils.openPrefs());
         this.button.menu.box.add_style_class_name('claude-menu');
-        this.button.menu.connect('open-state-changed', (menu, open) => { if (open) this.refresh(true); });
+        this.button.menu.connect('open-state-changed', (menu, open) => {
+            if (!open)
+                return;
+            this.refresh(true);
+            if (GLib.get_monotonic_time() / 1e6 - this.polled > 60)
+                this.pollLimits();
+        });
         Main.panel.addToStatusArea('claude-sessions', this.button, 0, settings.get_string('panel-box'));
         this.panelKey = null;
         this.menuKey = null;
         this.timer = null;
+        this.limitsTimer = null;
+        this.polling = null;
+        this.polled = -Infinity;
         this.pending = 0;
-        GLib.mkdir_with_parents(DIR, 0o755);
+        GLib.mkdir_with_parents(LIMITS, 0o755);
         this.watch = Gio.File.new_for_path(DIR).monitor_directory(Gio.FileMonitorFlags.NONE, null);
         this.watchId = this.watch.connect('changed', () => this.queueRefresh());
+        this.limitsWatch = Gio.File.new_for_path(LIMITS).monitor_directory(Gio.FileMonitorFlags.NONE, null);
+        this.limitsWatchId = this.limitsWatch.connect('changed', () => this.queueRefresh());
         this.settingsId = settings.connect('changed', (_, key) => {
             if (key === 'refresh-interval')
                 this.startTimer();
+            if (key === 'limits-interval')
+                this.startLimitsTimer();
             this.panelKey = null;   // redraw both with the new settings
             this.refresh(true);
         });
         this.refresh(true);
         this.startTimer();
+        this.pollLimits();
+        this.startLimitsTimer();
+    }
+
+    startLimitsTimer() {
+        if (this.limitsTimer)
+            GLib.source_remove(this.limitsTimer);
+        this.limitsTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this.settings.get_int('limits-interval'), () => {
+            this.pollLimits();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    // Codex tells its accounts' limits when asked; its answer lands in LIMITS, which is watched.
+    // (Claude tells them only to its status line, so there is nothing to ask it here.)
+    pollLimits() {
+        const homes = codexHomes();
+        if (this.polling || !homes.length)
+            return;
+        this.polled = GLib.get_monotonic_time() / 1e6;
+        try {
+            this.polling = Gio.Subprocess.new([GLib.build_filenamev([Me.path, 'bin', 'codex-limits']), ...homes],
+                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
+            this.polling.wait_async(null, () => { this.polling = null; });
+        } catch (e) {
+            this.polling = null;
+        }
     }
 
     // A hook writes <session>.json.tmp and renames it over <session>.json: one refresh for the burst of events.
@@ -352,8 +474,9 @@ class Indicator {
         return hidden;
     }
 
-    // [agent, [[account, sessions], ...]] for each agent with sessions, in AGENTS order
-    groups(sessions) {
+    // [agent, [[account, sessions], ...]] for each agent with sessions, in AGENTS order; `extra` adds accounts
+    // with no sessions (`<agent>/<account>` keys)
+    groups(sessions, extra = []) {
         // the account order set in Settings, then any account it doesn't list yet alphabetically
         const order = this.settings.get_strv('account-order');
         const rank = key => order.includes(key) ? order.indexOf(key) : order.length;
@@ -364,6 +487,11 @@ class Indicator {
                 if (!byAccount.has(s.account))
                     byAccount.set(s.account, []);
                 byAccount.get(s.account).push(s);
+            }
+            for (const key of extra) {
+                const [a, account] = [key.slice(0, key.indexOf('/')), key.slice(key.indexOf('/') + 1)];
+                if (a === agent && !byAccount.has(account))
+                    byAccount.set(account, []);
             }
             if (byAccount.size) {
                 groups.push([agent, [...byAccount.entries()].sort((a, b) =>
@@ -384,11 +512,14 @@ class Indicator {
         const sessions = all.filter(s => !hiddenStates.has(s.state));
         const hidden = all.length - sessions.length;
         const groups = this.groups(sessions);
+        const limits = readLimits();
+        const showLimits = this.settings.get_boolean('show-limits');
+        const limitsKey = (agent, account) => (limits.get(`${agent}/${account}`)?.windows || []).map(w => Math.round(w.left * 100)).join('/');
 
         this.button.visible = groups.length > 0 || !this.settings.get_boolean('hide-when-empty');
 
         const panelKey = groups.map(([agent, accounts]) =>
-            `${agent}=` + accounts.map(([a, ss]) => `${a}:${accountState(ss)}`).join(',')).join(';');
+            `${agent}=` + accounts.map(([a, ss]) => `${a}:${accountState(ss)}:${showLimits ? limitsKey(agent, a) : ''}`).join(',')).join(';');
         if (panelKey !== this.panelKey) {
             this.panelKey = panelKey;
             this.box.destroy_all_children();
@@ -412,19 +543,28 @@ class Indicator {
                         dot.ease({ opacity: 70, duration: 700, mode: Clutter.AnimationMode.EASE_IN_OUT_SINE, repeatCount: -1, autoReverse: true });
                     if (labels)
                         box.add_child(new St.Label({ text: this.accountName(agent, account), style_class: 'claude-account', y_align: Clutter.ActorAlign.CENTER }));
+                    // the shortest and the longest window: 5h and weekly
+                    const windows = limits.get(`${agent}/${account}`)?.windows || [];
+                    if (showLimits && windows.length) {
+                        const disks = new St.BoxLayout({ style_class: 'claude-disks' });
+                        for (const w of windows.length > 1 ? [windows[0], windows[windows.length - 1]] : windows)
+                            disks.add_child(disk(w.left));
+                        box.add_child(disks);
+                    }
                 }
             }
         }
 
-        const menuKey = `${hidden};` + sessions.map(s => `${s.session}:${s.state}:${s.muted}:${s.message}`).join(',');
+        const menuKey = `${hidden};` + sessions.map(s => `${s.session}:${s.state}:${s.muted}:${s.message}`).join(',') +
+            ';' + [...limits.keys()].map(k => `${k}:${limitsKey(...k.split('/'))}`).join(',');
         if (force || (menuKey !== this.menuKey && !this.button.menu.isOpen))
-            this.buildMenu(groups, hidden);
+            this.buildMenu(this.groups(sessions, [...limits.keys()]), hidden, limits);
         this.menuKey = menuKey;
     }
 
-    buildMenu(groups, hidden) {
+    buildMenu(groups, hidden, limits) {
         this.section.removeAll();
-        if (!groups.length)
+        if (!groups.some(([, accounts]) => accounts.some(([, ss]) => ss.length)))
             this.section.addMenuItem(new PopupMenu.PopupMenuItem('No sessions to show', { reactive: false }));
         if (hidden) {
             const note = new PopupMenu.PopupMenuItem(`${hidden} hidden session${hidden === 1 ? '' : 's'} (see Settings)`, { reactive: false });
@@ -441,13 +581,34 @@ class Indicator {
             this.section.addMenuItem(heading);
             for (const [account, ss] of accounts) {
                 const header = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'claude-header' });
-                header.add_child(light(accountState(ss)));
+                header.add_child(ss.length ? light(accountState(ss)) : light('none'));   // none: only its limits are known
                 header.add_child(new St.Label({ text: this.accountName(agent, account), style_class: 'claude-header-label', y_align: Clutter.ActorAlign.CENTER }));
                 this.section.addMenuItem(header);
+                const l = limits.get(`${agent}/${account}`);
+                for (const w of l?.windows || [])
+                    this.section.addMenuItem(this.limitItem(w, now));
+                if (l && now - l.updated > STALE_LIMITS) {
+                    const note = new PopupMenu.PopupMenuItem(`limits as of ${age(now - l.updated)} ago`, { reactive: false, style_class: 'claude-limit' });
+                    note.label.add_style_class_name('claude-hidden-note');
+                    this.section.addMenuItem(note);
+                }
                 for (const s of ss)
                     this.section.addMenuItem(this.sessionItem(s, now));
             }
         });
+    }
+
+    // a limit window: its name, a bar that empties as it is used, and what is left until when
+    limitItem(w, now) {
+        const item = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'claude-limit' });
+        item.add_child(new St.Label({ text: windowName(w.minutes), style_class: 'claude-limit-name', y_align: Clutter.ActorAlign.CENTER }));
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const track = new St.Widget({ style_class: 'claude-bar', width: BAR * scale, y_align: Clutter.ActorAlign.CENTER });
+        track.add_child(new St.Widget({ style_class: `claude-bar-fill claude-fill-${level(w.left)}`, width: Math.round(BAR * scale * w.left) }));
+        item.add_child(track);
+        const resets = w.resets_at ? `, resets in ${age(w.resets_at - now)}` : '';
+        item.add_child(new St.Label({ text: `${Math.round(w.left * 100)}% left${resets}`, style_class: 'claude-limit-text', y_align: Clutter.ActorAlign.CENTER }));
+        return item;
     }
 
     sessionItem(s, now) {
@@ -483,6 +644,10 @@ class Indicator {
         this.settings.disconnect(this.settingsId);
         this.watch.disconnect(this.watchId);
         this.watch.cancel();
+        this.limitsWatch.disconnect(this.limitsWatchId);
+        this.limitsWatch.cancel();
+        if (this.limitsTimer)
+            GLib.source_remove(this.limitsTimer);
         if (this.pending)
             GLib.source_remove(this.pending);
         if (this.timer)
