@@ -1,16 +1,16 @@
 <div align="center">
 
-<img src="docs/header.svg" alt="Claude Sessions: every Claude Code session, one glance away" width="100%">
+<img src="docs/header.svg" alt="Claude &amp; Codex Sessions: each Claude and Codex session, at a glance" width="100%">
 
-[![Release](https://img.shields.io/github/v/release/Dhia-dbh/gnome-claude-sessions?sort=semver&color=d97757)](https://github.com/Dhia-dbh/gnome-claude-sessions/releases/latest)
+[![Release](https://img.shields.io/github/v/release/Dhia-dbh/gnome-claude-codex-sessions?sort=semver&color=d97757)](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ec27e)](LICENSE)
 [![GNOME Shell 42](https://img.shields.io/badge/GNOME%20Shell-42-4a86cf?logo=gnome&logoColor=white)](https://extensions.gnome.org/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks-d97757)](https://docs.claude.com/en/docs/claude-code/hooks)
-[![Release workflow](https://img.shields.io/github/actions/workflow/status/Dhia-dbh/gnome-claude-sessions/release.yml?label=build)](https://github.com/Dhia-dbh/gnome-claude-sessions/actions/workflows/release.yml)
+[![Release workflow](https://img.shields.io/github/actions/workflow/status/Dhia-dbh/gnome-claude-codex-sessions/release.yml?label=build)](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/actions/workflows/release.yml)
 
 </div>
 
-# Claude Sessions
+# Claude & Codex Sessions
 
 A GNOME Shell extension that shows what every [Claude Code](https://claude.com/claude-code) and
 [Codex](https://developers.openai.com/codex) session on your computer is doing, right in the top bar —
@@ -49,16 +49,20 @@ across several accounts of each at once.
 
 | | |
 |---|---|
-| **Version** | 1.0.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-sessions/releases)) |
+| **Version** | 1.0.0 ([changelog](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases)) |
 | **GNOME Shell** | 42 (tested on Pop!_OS 22.04, X11) |
 | **Claude Code** | with hooks (`StopFailure` for the usage-limit light) |
 | **Codex CLI** | optional, with hooks (on by default; trust them once with `/hooks`) |
 | **Tools** | `jq`, `glib-compile-schemas` |
 | **License** | MIT |
 
+The project was called *Claude Sessions* until it learned about Codex. Its extension id
+(`claude-sessions@dhia.local`), settings schema and cache directory keep that name, so existing installs
+and settings carry on unchanged.
+
 ## Install
 
-Grab the zip from the [latest release](https://github.com/Dhia-dbh/gnome-claude-sessions/releases/latest):
+Grab the zip from the [latest release](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases/latest):
 
 ```sh
 gnome-extensions install claude-sessions@dhia.local.shell-extension.zip
@@ -68,8 +72,8 @@ bash ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local/install.sh
 or clone the repository:
 
 ```sh
-git clone https://github.com/Dhia-dbh/gnome-claude-sessions.git ~/src/gnome-claude-sessions
-cd ~/src/gnome-claude-sessions
+git clone https://github.com/Dhia-dbh/gnome-claude-codex-sessions.git ~/src/gnome-claude-codex-sessions
+cd ~/src/gnome-claude-codex-sessions
 ./install.sh
 ```
 

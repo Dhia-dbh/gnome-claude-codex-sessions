@@ -1,12 +1,12 @@
 {
   "uuid": "claude-sessions@dhia.local",
-  "name": "Claude Sessions",
+  "name": "Claude & Codex Sessions",
   "description": "Top-bar lights for every Claude Code and Codex session on this computer, grouped by agent and account, with per-session mute and a settings window (from ~/.cache/claude-status, written by Claude Code and Codex hooks). Click a session to raise its terminal.",
   "shell-version": [
     "42"
   ],
   "version": 5,
   "settings-schema": "org.gnome.shell.extensions.claude-sessions",
-  "url": "https://github.com/Dhia-dbh/gnome-claude-sessions",
+  "url": "https://github.com/Dhia-dbh/gnome-claude-codex-sessions",
   "version-name": "1.0.0"
 }

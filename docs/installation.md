@@ -3,8 +3,8 @@
 ## With the script
 
 ```sh
-git clone https://github.com/Dhia-dbh/gnome-claude-sessions.git ~/src/gnome-claude-sessions
-cd ~/src/gnome-claude-sessions
+git clone https://github.com/Dhia-dbh/gnome-claude-codex-sessions.git ~/src/gnome-claude-codex-sessions
+cd ~/src/gnome-claude-codex-sessions
 ./install.sh                      # every ~/.claude, ~/.claude-*, ~/.codex and ~/.codex-* account
 ./install.sh ~/.claude-work       # or only the config dirs you name (~/.codex* dirs are Codex homes)
 ```
@@ -38,7 +38,7 @@ the hooks.
 ## From a release zip
 
 Download `claude-sessions@dhia.local.shell-extension.zip` from the
-[releases page](https://github.com/Dhia-dbh/gnome-claude-sessions/releases), then:
+[releases page](https://github.com/Dhia-dbh/gnome-claude-codex-sessions/releases), then:
 
 ```sh
 gnome-extensions install claude-sessions@dhia.local.shell-extension.zip
@@ -51,9 +51,9 @@ the extension as above.
 ## Manually
 
 ```sh
-ln -s ~/src/gnome-claude-sessions ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local
-ln -s ~/src/gnome-claude-sessions/bin/claude-status-hook ~/.local/bin/claude-status-hook
-glib-compile-schemas ~/src/gnome-claude-sessions/schemas
+ln -s ~/src/gnome-claude-codex-sessions ~/.local/share/gnome-shell/extensions/claude-sessions@dhia.local
+ln -s ~/src/gnome-claude-codex-sessions/bin/claude-status-hook ~/.local/bin/claude-status-hook
+glib-compile-schemas ~/src/gnome-claude-codex-sessions/schemas
 ```
 
 Then add the hook to the `settings.json` of each account (`~/.claude/settings.json`, or

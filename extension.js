@@ -1,4 +1,4 @@
-/* Claude Sessions: top-bar status of every Claude Code and Codex session on this computer, across accounts.
+/* Claude & Codex Sessions: top-bar status of every Claude Code and Codex session on this computer, across accounts.
  *
  * Reads the status files that ~/.local/bin/claude-status-hook (bin/ in this repo) writes from Claude Code and
  * Codex hooks (~/.cache/claude-status/<session_id>.json: agent claude | codex (missing = claude), account,
@@ -272,7 +272,7 @@ function focusSession(s) {
         Main.activateWindow(own);
         return;
     }
-    const fail = why => Main.notifyError('Claude Sessions', `Can’t show ${s.project}: ${why}`);
+    const fail = why => Main.notifyError('Claude & Codex Sessions', `Can’t show ${s.project}: ${why}`);
     if (s.agent !== 'claude') {   // Codex has no background sessions to attach to
         fail('its terminal window was not found');
         return;
@@ -376,7 +376,7 @@ function mark(agent, extraClass) {
 class Indicator {
     constructor(settings) {
         this.settings = settings;
-        this.button = new PanelMenu.Button(0.0, 'Claude Sessions', false);
+        this.button = new PanelMenu.Button(0.0, 'Claude & Codex Sessions', false);
         this.box = new St.BoxLayout({ style_class: 'panel-status-menu-box claude-panel' });
         this.button.add_child(this.box);
         this.section = new PopupMenu.PopupMenuSection();

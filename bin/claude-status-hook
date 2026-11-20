@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code / Codex hook: records each session's state for the "Claude Sessions" top-bar extension.
+# Claude Code / Codex hook: records each session's state for the "Claude & Codex Sessions" top-bar extension.
 # Claude Code: wired in the settings.json of every account (~/.claude-personal, ~/.claude-work) for
 # SessionStart, UserPromptSubmit, PostToolUse, Stop, StopFailure (rate_limit only), Notification
 # (permission/question only) and SessionEnd.

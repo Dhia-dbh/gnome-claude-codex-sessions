@@ -1,4 +1,4 @@
-/* Claude Sessions: one light per state, the same for every agent. waiting pulses (extension.js), muted is a
+/* Claude & Codex Sessions: one light per state, the same for every agent. waiting pulses (extension.js), muted is a
  * hollow ring. Each agent has its own mark. */
 .claude-panel { spacing: 10px; }
 .claude-agent { spacing: 5px; }
