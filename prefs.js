@@ -166,7 +166,7 @@ function fillPreferencesWindow(window) {
     settings.bind('refresh-interval', spin, 'value', Gio.SettingsBindFlags.DEFAULT);
     refresh.add_suffix(spin);
     advanced.add(refresh);
-    const limits = new Adw.ActionRow({ title: 'Codex limits check interval', subtitle: 'Seconds between asks for the Codex accounts’ usage limits. Claude’s come from its sessions.' });
+    const limits = new Adw.ActionRow({ title: 'Codex limits check interval', subtitle: 'Seconds between asks for the usage limits of Codex accounts with a working session. Idle accounts are not asked. Claude’s come from its sessions.' });
     const limitsSpin = Gtk.SpinButton.new_with_range(60, 3600, 30);
     limitsSpin.valign = Gtk.Align.CENTER;
     settings.bind('limits-interval', limitsSpin, 'value', Gio.SettingsBindFlags.DEFAULT);

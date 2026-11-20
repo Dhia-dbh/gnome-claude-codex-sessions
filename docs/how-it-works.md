@@ -63,8 +63,10 @@ Neither CLI has a hook for its usage limits, so they come from elsewhere and are
   after a session's first response, so an account's limits are as recent as its last active session.
   Older than 15 minutes, the menu says how old they are.
 - **Codex** answers `account/rateLimits/read` from `codex app-server` without a session or a terminal.
-  The extension runs `bin/codex-limits` for each signed-in `~/.codex*` home every few minutes (Settings →
-  Codex limits check interval) and when the menu opens. Codex's windows depend on the plan: 5h and weekly
+  Limits only move while a session works, so the extension runs `bin/codex-limits` only for the accounts
+  with a working Codex session (every 2 minutes by default, Settings → Codex limits check interval), once
+  more when an account's sessions stop working, to catch what the last turn used, and for signed-in
+  accounts with no limits yet (at start and when the menu opens). Idle accounts are never asked. Codex's windows depend on the plan: 5h and weekly
   on paid plans, one monthly window on the free plan.
 
 A window whose reset time has passed counts as unused until new values arrive. The top bar shows the

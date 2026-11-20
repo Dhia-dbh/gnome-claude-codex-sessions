@@ -16,7 +16,7 @@ Open the settings from the indicator menu (**Settings…**) or with
 | Menu | Show what a waiting session is asking | on | The prompt text under a waiting session |
 | Claude Code accounts, Codex accounts | name / ↑ ↓ | — | Display name and order of each account ([accounts.md](accounts.md)) |
 | Advanced | Background check interval | 10 s | How often to check for crashed sessions, Monitor scripts and background shells |
-| Advanced | Codex limits check interval | 300 s | How often to ask Codex for its accounts' usage limits (also when the menu opens, at most once a minute) |
+| Advanced | Codex limits check interval | 120 s | How often to ask Codex for the usage limits of accounts with a working session. Idle accounts are not asked; an account is asked once more when it stops working |
 
 Hidden sessions are counted in the menu ("2 hidden sessions"), so they aren't lost.
 
