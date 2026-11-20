@@ -67,14 +67,14 @@ Neither CLI has a hook for its usage limits, so they come from elsewhere and are
 - **Codex** answers `account/rateLimits/read` from `codex app-server` without a session or a terminal.
   Limits only move while a session works, so the extension runs `bin/codex-limits` only for the accounts
   with a working Codex session (every 2 minutes by default, Settings → Codex limits check interval), once
-  more when an account's sessions stop working, to catch what the last turn used, and for signed-in
-  accounts with no limits yet (at start and when the menu opens). Idle accounts are never asked. Codex's windows depend on the plan: 5h and weekly
+  more when an account's sessions stop working, to catch what the last turn used, and once when an
+  account with no limits known yet opens a session. Accounts without sessions are never asked. Codex's windows depend on the plan: 5h and weekly
   on paid plans, one monthly window on the free plan.
 
-A window whose reset time has passed counts as unused until new values arrive. The top bar shows the
-shortest and longest window of each account with sessions as moon disks. The lit part is what is left;
-it is white, amber with 20 % or less left and a red ring when used up. The menu lists every account with
-known limits, with a bar per window.
+A window whose reset time has passed counts as unused until new values arrive. Limits show only for
+accounts with open sessions: in the menu, a bar per window under the account; in the top bar (Settings →
+Show usage limits in the top bar), the shortest and longest window (5h over weekly) stacked after the
+account's light. A bar empties as the limit is used; it is white, and amber with 20 % or less left.
 
 ## Files
 

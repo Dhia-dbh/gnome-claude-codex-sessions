@@ -39,8 +39,8 @@
     </key>
     <key name="show-limits" type="b">
       <default>true</default>
-      <summary>Show each account's usage limits as disks next to its light</summary>
-      <description>Up to two disks (the shortest and the longest window, such as 5h and weekly): full while nothing is used, a half moon at half.</description>
+      <summary>Show each account's usage limits in the top bar, next to its light</summary>
+      <description>The shortest and the longest window (such as 5h and weekly) as stacked bars that empty as they are used, as in the menu. The menu always shows them.</description>
     </key>
     <key name="limits-interval" type="i">
       <range min="60" max="3600"/>

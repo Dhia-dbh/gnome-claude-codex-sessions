@@ -17,8 +17,8 @@
  * Usage limits: limits/<agent>-<account>.json (bin/claude-status-line, Claude's status line, while its sessions
  * run; bin/codex-limits, run here every limits-interval seconds for the Codex accounts with a working session,
  * once more when they stop, and for accounts with no limits yet) give each account's windows (5h, weekly, …)
- * as % used. The top bar shows up to two moon disks per account (full = nothing used), the menu a bar per
- * window that empties as it is used.
+ * as % used, shown for the accounts with sessions: a bar per window that empties as it is used, in the menu and
+ * (show-limits) in the top bar, where the shortest and the longest window (5h, weekly) are stacked.
  * GNOME Shell 42 (legacy imports).
  */
 
@@ -35,8 +35,7 @@ const MUTED = GLib.build_filenamev([DIR, 'muted']);
 const LIMITS = GLib.build_filenamev([DIR, 'limits']);
 const STALE_LIMITS = 15 * 60;   // limits older than this say how old they are (Claude's stop updating with its sessions)
 const BAR = 140;                // width of a limit's bar in the menu
-// a limit's colour: the disk's and the bar's fill, as cairo RGB for the disks (the bars' are in stylesheet.css)
-const LEVELS = { ok: [0.965, 0.961, 0.957], low: [0.898, 0.647, 0.039], out: [0.878, 0.106, 0.141] };
+const PANEL_BAR = 32;           // and in the top bar
 // most urgent first: the top bar shows the first state any unmuted session of the account is in
 const ORDER = ['limited', 'waiting', 'working', 'monitor', 'shell', 'done', 'idle'];
 const STATES = {
@@ -345,31 +344,12 @@ function light(state) {
     return new St.Widget({ style_class: `claude-light claude-${state}`, y_align: Clutter.ActorAlign.CENTER });
 }
 
-// A limit as a moon: the lit part is what is left (full disk = nothing used, half moon = half used, a bare
-// ring = used up). The lit part is the right half plus or minus half an ellipse, so its area is exactly `left`.
-function disk(left) {
-    const area = new St.DrawingArea({ style_class: 'claude-disk', y_align: Clutter.ActorAlign.CENTER });
-    area.connect('repaint', () => {
-        const cr = area.get_context();
-        const [w, h] = area.get_surface_size();
-        const R = Math.min(w, h) / 2 - 1, cx = w / 2, cy = h / 2;
-        const [r, g, b] = LEVELS[level(left)];
-        if (left > 0) {
-            cr.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2);
-            const k = 2 * left - 1;   // the terminator, from the bottom back to the top
-            for (let i = 0; i <= 24; i++)
-                cr.lineTo(cx - k * R * Math.sin(Math.PI * i / 24), cy + R * Math.cos(Math.PI * i / 24));
-            cr.closePath();
-            cr.setSourceRGBA(r, g, b, 1);
-            cr.fill();
-        }
-        cr.arc(cx, cy, R, 0, 2 * Math.PI);
-        cr.setSourceRGBA(r, g, b, left > 0 ? 0.5 : 1);
-        cr.setLineWidth(1);
-        cr.stroke();
-        cr.$dispose();
-    });
-    return area;
+// A limit as a bar that empties as it is used (its colour: level()); width in logical pixels
+function bar(left, width) {
+    const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+    const track = new St.Widget({ style_class: 'claude-bar', width: width * scale, y_align: Clutter.ActorAlign.CENTER });
+    track.add_child(new St.Widget({ style_class: `claude-bar-fill claude-fill-${level(left)}`, width: Math.round(width * scale * left) }));
+    return track;
 }
 
 function mark(agent, extraClass) {
@@ -406,6 +386,7 @@ class Indicator {
         this.polled = -Infinity;
         this.wanted = new Set();    // Codex accounts to ask for their limits next
         this.working = new Set();   // Codex accounts with a working session at the last refresh
+        this.open = new Set();      // and with any session
         this.pending = 0;
         GLib.mkdir_with_parents(LIMITS, 0o755);
         this.watch = Gio.File.new_for_path(DIR).monitor_directory(Gio.FileMonitorFlags.NONE, null);
@@ -422,7 +403,6 @@ class Indicator {
         });
         this.refresh(true);
         this.startTimer();
-        this.pollLimits(this.unknownLimits());
         this.startLimitsTimer();
     }
 
@@ -435,10 +415,10 @@ class Indicator {
         });
     }
 
-    // the signed-in Codex accounts with no limits known yet
+    // the Codex accounts with open sessions and no limits known yet
     unknownLimits() {
         const limits = readLimits();
-        return [...codexHomes().keys()].filter(a => !limits.has(`codex/${a}`));
+        return [...this.open].filter(a => !limits.has(`codex/${a}`));
     }
 
     // Codex tells an account's limits when asked; its answer lands in LIMITS, which is watched. Only a working
@@ -497,9 +477,8 @@ class Indicator {
         return hidden;
     }
 
-    // [agent, [[account, sessions], ...]] for each agent with sessions, in AGENTS order; `extra` adds accounts
-    // with no sessions (`<agent>/<account>` keys)
-    groups(sessions, extra = []) {
+    // [agent, [[account, sessions], ...]] for each agent with sessions, in AGENTS order
+    groups(sessions) {
         // the account order set in Settings, then any account it doesn't list yet alphabetically
         const order = this.settings.get_strv('account-order');
         const rank = key => order.includes(key) ? order.indexOf(key) : order.length;
@@ -510,11 +489,6 @@ class Indicator {
                 if (!byAccount.has(s.account))
                     byAccount.set(s.account, []);
                 byAccount.get(s.account).push(s);
-            }
-            for (const key of extra) {
-                const [a, account] = [key.slice(0, key.indexOf('/')), key.slice(key.indexOf('/') + 1)];
-                if (a === agent && !byAccount.has(account))
-                    byAccount.set(account, []);
             }
             if (byAccount.size) {
                 groups.push([agent, [...byAccount.entries()].sort((a, b) =>
@@ -534,10 +508,16 @@ class Indicator {
         // a Codex account's limits move only while it works: asked for on the limits timer then, and once more
         // when it stops, for what its last turn used
         const working = new Set(all.filter(s => s.agent === 'codex' && s.state === 'working').map(s => s.account));
+        const opened = all.filter(s => s.agent === 'codex' && !this.open.has(s.account)).map(s => s.account);
+        this.open = new Set(all.filter(s => s.agent === 'codex').map(s => s.account));
         const stopped = [...this.working].filter(a => !working.has(a));
         this.working = working;
         if (stopped.length)
             this.pollLimits(stopped);
+        // an account just opened with nothing known: ask once, so its bars show
+        const limitsNow = opened.length && readLimits();
+        if (opened.length)
+            this.pollLimits(opened.filter(a => !limitsNow.has(`codex/${a}`)));
         const hiddenStates = this.hiddenStates();
         const sessions = all.filter(s => !hiddenStates.has(s.state));
         const hidden = all.length - sessions.length;
@@ -573,13 +553,13 @@ class Indicator {
                         dot.ease({ opacity: 70, duration: 700, mode: Clutter.AnimationMode.EASE_IN_OUT_SINE, repeatCount: -1, autoReverse: true });
                     if (labels)
                         box.add_child(new St.Label({ text: this.accountName(agent, account), style_class: 'claude-account', y_align: Clutter.ActorAlign.CENTER }));
-                    // the shortest and the longest window: 5h and weekly
+                    // the shortest and the longest window, stacked: 5h over weekly
                     const windows = limits.get(`${agent}/${account}`)?.windows || [];
                     if (showLimits && windows.length) {
-                        const disks = new St.BoxLayout({ style_class: 'claude-disks' });
+                        const bars = new St.BoxLayout({ vertical: true, style_class: 'claude-bars', y_align: Clutter.ActorAlign.CENTER });
                         for (const w of windows.length > 1 ? [windows[0], windows[windows.length - 1]] : windows)
-                            disks.add_child(disk(w.left));
-                        box.add_child(disks);
+                            bars.add_child(bar(w.left, PANEL_BAR));
+                        box.add_child(bars);
                     }
                 }
             }
@@ -588,13 +568,13 @@ class Indicator {
         const menuKey = `${hidden};` + sessions.map(s => `${s.session}:${s.state}:${s.muted}:${s.message}`).join(',') +
             ';' + [...limits.keys()].map(k => `${k}:${limitsKey(...k.split('/'))}`).join(',');
         if (force || (menuKey !== this.menuKey && !this.button.menu.isOpen))
-            this.buildMenu(this.groups(sessions, [...limits.keys()]), hidden, limits);
+            this.buildMenu(groups, hidden, limits);
         this.menuKey = menuKey;
     }
 
     buildMenu(groups, hidden, limits) {
         this.section.removeAll();
-        if (!groups.some(([, accounts]) => accounts.some(([, ss]) => ss.length)))
+        if (!groups.length)
             this.section.addMenuItem(new PopupMenu.PopupMenuItem('No sessions to show', { reactive: false }));
         if (hidden) {
             const note = new PopupMenu.PopupMenuItem(`${hidden} hidden session${hidden === 1 ? '' : 's'} (see Settings)`, { reactive: false });
@@ -611,7 +591,7 @@ class Indicator {
             this.section.addMenuItem(heading);
             for (const [account, ss] of accounts) {
                 const header = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'claude-header' });
-                header.add_child(ss.length ? light(accountState(ss)) : light('none'));   // none: only its limits are known
+                header.add_child(light(accountState(ss)));
                 header.add_child(new St.Label({ text: this.accountName(agent, account), style_class: 'claude-header-label', y_align: Clutter.ActorAlign.CENTER }));
                 this.section.addMenuItem(header);
                 const l = limits.get(`${agent}/${account}`);
@@ -632,10 +612,7 @@ class Indicator {
     limitItem(w, now) {
         const item = new PopupMenu.PopupBaseMenuItem({ reactive: false, style_class: 'claude-limit' });
         item.add_child(new St.Label({ text: windowName(w.minutes), style_class: 'claude-limit-name', y_align: Clutter.ActorAlign.CENTER }));
-        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        const track = new St.Widget({ style_class: 'claude-bar', width: BAR * scale, y_align: Clutter.ActorAlign.CENTER });
-        track.add_child(new St.Widget({ style_class: `claude-bar-fill claude-fill-${level(w.left)}`, width: Math.round(BAR * scale * w.left) }));
-        item.add_child(track);
+        item.add_child(bar(w.left, BAR));
         const resets = w.resets_at ? `, resets in ${age(w.resets_at - now)}` : '';
         item.add_child(new St.Label({ text: `${Math.round(w.left * 100)}% left${resets}`, style_class: 'claude-limit-text', y_align: Clutter.ActorAlign.CENTER }));
         return item;
