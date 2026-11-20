@@ -15,7 +15,8 @@
  * accounts' display names and order (account-names, account-order; keyed by accountKey(): the hook's account
  * id for Claude, codex:<id> for Codex).
  * Usage limits: limits/<agent>-<account>.json (bin/claude-status-line, Claude's status line, while its sessions
- * run; bin/codex-limits, run here every limits-interval seconds) give each account's windows (5h, weekly, …)
+ * run; bin/codex-limits, run here every limits-interval seconds for the Codex accounts with a working session,
+ * once more when they stop, and for accounts with no limits yet) give each account's windows (5h, weekly, …)
  * as % used. The top bar shows up to two moon disks per account (full = nothing used), the menu a bar per
  * window that empties as it is used.
  * GNOME Shell 42 (legacy imports).
@@ -191,12 +192,17 @@ function level(left) {
     return left <= 0 ? 'out' : left <= 0.2 ? 'low' : 'ok';
 }
 
-// the Codex homes signed in: ~/.codex and ~/.codex-<id> with an auth.json
+// the Codex homes signed in, by account id: ~/.codex (default) and ~/.codex-<id>, with an auth.json
 function codexHomes() {
     const home = GLib.get_home_dir();
-    return listDir(home).filter(n => /^\.codex(-.+)?$/.test(n))
-        .map(n => GLib.build_filenamev([home, n]))
-        .filter(d => GLib.file_test(GLib.build_filenamev([d, 'auth.json']), GLib.FileTest.EXISTS));
+    const homes = new Map();
+    for (const name of listDir(home)) {
+        const m = /^\.codex(?:-(.+))?$/.exec(name);
+        const path = m && GLib.build_filenamev([home, name]);
+        if (path && GLib.file_test(GLib.build_filenamev([path, 'auth.json']), GLib.FileTest.EXISTS))
+            homes.set(m[1] || 'default', path);
+    }
+    return homes;
 }
 
 function setMuted(session, muted) {
@@ -389,7 +395,7 @@ class Indicator {
                 return;
             this.refresh(true);
             if (GLib.get_monotonic_time() / 1e6 - this.polled > 60)
-                this.pollLimits();
+                this.pollLimits(this.unknownLimits());
         });
         Main.panel.addToStatusArea('claude-sessions', this.button, 0, settings.get_string('panel-box'));
         this.panelKey = null;
@@ -398,6 +404,8 @@ class Indicator {
         this.limitsTimer = null;
         this.polling = null;
         this.polled = -Infinity;
+        this.wanted = new Set();    // Codex accounts to ask for their limits next
+        this.working = new Set();   // Codex accounts with a working session at the last refresh
         this.pending = 0;
         GLib.mkdir_with_parents(LIMITS, 0o755);
         this.watch = Gio.File.new_for_path(DIR).monitor_directory(Gio.FileMonitorFlags.NONE, null);
@@ -414,7 +422,7 @@ class Indicator {
         });
         this.refresh(true);
         this.startTimer();
-        this.pollLimits();
+        this.pollLimits(this.unknownLimits());
         this.startLimitsTimer();
     }
 
@@ -422,22 +430,37 @@ class Indicator {
         if (this.limitsTimer)
             GLib.source_remove(this.limitsTimer);
         this.limitsTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this.settings.get_int('limits-interval'), () => {
-            this.pollLimits();
+            this.pollLimits([...this.working]);
             return GLib.SOURCE_CONTINUE;
         });
     }
 
-    // Codex tells its accounts' limits when asked; its answer lands in LIMITS, which is watched.
+    // the signed-in Codex accounts with no limits known yet
+    unknownLimits() {
+        const limits = readLimits();
+        return [...codexHomes().keys()].filter(a => !limits.has(`codex/${a}`));
+    }
+
+    // Codex tells an account's limits when asked; its answer lands in LIMITS, which is watched. Only a working
+    // session uses any, so idle accounts are not asked. Accounts asked for during a check wait for the next one.
     // (Claude tells them only to its status line, so there is nothing to ask it here.)
-    pollLimits() {
+    pollLimits(accounts) {
+        accounts.forEach(a => this.wanted.add(a));
+        if (this.polling || !this.wanted.size)
+            return;
         const homes = codexHomes();
-        if (this.polling || !homes.length)
+        const paths = [...this.wanted].map(a => homes.get(a)).filter(Boolean);
+        this.wanted.clear();
+        if (!paths.length)
             return;
         this.polled = GLib.get_monotonic_time() / 1e6;
         try {
-            this.polling = Gio.Subprocess.new([GLib.build_filenamev([Me.path, 'bin', 'codex-limits']), ...homes],
+            this.polling = Gio.Subprocess.new([GLib.build_filenamev([Me.path, 'bin', 'codex-limits']), ...paths],
                 Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
-            this.polling.wait_async(null, () => { this.polling = null; });
+            this.polling.wait_async(null, () => {
+                this.polling = null;
+                this.pollLimits([]);
+            });
         } catch (e) {
             this.polling = null;
         }
@@ -508,6 +531,13 @@ class Indicator {
     // force: rebuild the menu even when nothing changed (so the ages are fresh when it opens)
     refresh(force) {
         const all = readSessions();
+        // a Codex account's limits move only while it works: asked for on the limits timer then, and once more
+        // when it stops, for what its last turn used
+        const working = new Set(all.filter(s => s.agent === 'codex' && s.state === 'working').map(s => s.account));
+        const stopped = [...this.working].filter(a => !working.has(a));
+        this.working = working;
+        if (stopped.length)
+            this.pollLimits(stopped);
         const hiddenStates = this.hiddenStates();
         const sessions = all.filter(s => !hiddenStates.has(s.state));
         const hidden = all.length - sessions.length;
@@ -644,6 +674,7 @@ class Indicator {
         this.settings.disconnect(this.settingsId);
         this.watch.disconnect(this.watchId);
         this.watch.cancel();
+        this.wanted.clear();   // a check still running asks for nothing more
         this.limitsWatch.disconnect(this.limitsWatchId);
         this.limitsWatch.cancel();
         if (this.limitsTimer)
